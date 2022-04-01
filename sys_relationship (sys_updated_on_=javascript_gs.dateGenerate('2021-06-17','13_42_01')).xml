@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<unload unload_date="2021-11-17 05:28:07">
+<sys_relationship action="INSERT_OR_UPDATE">
+<advanced>false</advanced>
+<apply_to/>
+<basic_apply_to>em_alert</basic_apply_to>
+<basic_query_from>em_alert</basic_query_from>
+<insert_callback/>
+<name>Alert Insight Similar Alerts</name>
+<query_from/>
+<query_with><![CDATA[function similarity(s1, s2) {
+  var longer = s1;
+  var shorter = s2;
+  if (s1.length < s2.length) {
+    longer = s2;
+    shorter = s1;
+  }
+  var longerLength = longer.length;
+  if (longerLength == 0) {
+    return 1.0;
+  }
+  return (longerLength - editDistance(longer, shorter)) / parseFloat(longerLength);
+}
+function editDistance(s1, s2) {
+  s1 = s1.toLowerCase();
+  s2 = s2.toLowerCase();
+
+  var costs = new Array();
+  for (var i = 0; i <= s1.length; i++) {
+    var lastValue = i;
+    for (var j = 0; j <= s2.length; j++) {
+      if (i == 0)
+        costs[j] = j;
+      else {
+        if (j > 0) {
+          var newValue = costs[j - 1];
+          if (s1.charAt(i - 1) != s2.charAt(j - 1))
+            newValue = Math.min(Math.min(newValue, lastValue),
+              costs[j]) + 1;
+          costs[j - 1] = lastValue;
+          lastValue = newValue;
+        }
+      }
+    }
+    if (i > 0)
+      costs[s2.length] = lastValue;
+  }
+  return costs[s2.length];
+}
+(function refineQuery(current, parent) {
+	if(current.cmdb_ci && parent.cmdb_ci) {
+		var emAiInsight = new EmAiInsight();
+		emAiInsight.getSameAlertQuery(current, parent);		
+	} else {
+    var ids = "";
+    var simperc_source = 0;
+    var simperc_type = 0;		
+    var simperc_resource = 0;		
+    var simperc_metric_name = 0;    
+		var candidates = new GlideRecord('em_alert');
+		candidates.query();
+		
+		while(candidates.next()) {
+			if(candidates.source) {
+				simperc_source = similarity(parent.getValue('source'), candidates.getValue('source'));
+			}
+			if(candidates.type) {
+				simperc_type = similarity(parent.getValue('type'), candidates.getValue('type'));
+			}
+			if(candidates.resource) {
+				simperc_resource = similarity(parent.getValue('resource'), candidates.getValue('resource'));
+			}
+			if(candidates.metric_name) {
+				simperc_metric_name = similarity(parent.getValue('metric_name'), candidates.getValue('metric_name'));
+			}
+			if(simperc_source >= 0.9 && simperc_type >= 0.9 && simperc_resource >= 0.9 && simperc_metric_name >= 0.9) {
+				if(ids !== '') {
+					ids += ', ' + candidates.sys_id;
+				} else {
+					ids += candidates.sys_id;					
+				}
+			}
+		}
+		current.addQuery('sys_id', "IN", ids);
+		current.addQuery('sys_id', "!=", parent.sys_id);
+		emAiInsightCommon.addTimeBeforeQuery(current, "evt_mgmt.alert_insight_alert_history_min", 43200 /* 30 days */);
+	}
+	
+})(current, parent);
+]]></query_with>
+<reference_field>cmdb_ci</reference_field>
+<related_list/>
+<simple_reference>false</simple_reference>
+<sys_class_name>sys_relationship</sys_class_name>
+<sys_created_by>admin</sys_created_by>
+<sys_created_on>2017-11-23 12:57:04</sys_created_on>
+<sys_id>51158e669326030054fc31f6357ffb10</sys_id>
+<sys_mod_count>17</sys_mod_count>
+<sys_name>Alert Insight Similar Alerts</sys_name>
+<sys_package display_value="Event Management" source="com.glideapp.itom.snac">8702ba0adb072010de282d9a13961906</sys_package>
+<sys_policy/>
+<sys_scope display_value="Global">global</sys_scope>
+<sys_update_name>sys_relationship_51158e669326030054fc31f6357ffb10</sys_update_name>
+<sys_updated_by>matt.morris</sys_updated_by>
+<sys_updated_on>2021-06-22 04:35:46</sys_updated_on>
+</sys_relationship>
+<sys_relationship action="INSERT_OR_UPDATE">
+<advanced>false</advanced>
+<apply_to/>
+<basic_apply_to>em_alert</basic_apply_to>
+<basic_query_from>em_alert</basic_query_from>
+<insert_callback/>
+<name>Repeated Alerts</name>
+<query_from/>
+<query_with><![CDATA[(function refineQuery(current, parent) {
+
+	var emAiInsight = new EmAiInsight();
+	emAiInsight.getSameAlertQuery(current, parent);
+	
+})(current, parent);]]></query_with>
+<reference_field>cmdb_ci</reference_field>
+<related_list/>
+<simple_reference>false</simple_reference>
+<sys_class_name>sys_relationship</sys_class_name>
+<sys_created_by>admin</sys_created_by>
+<sys_created_on>2017-11-23 13:26:29</sys_created_on>
+<sys_id>d8dbca6a9326030054fc31f6357ffb60</sys_id>
+<sys_mod_count>27</sys_mod_count>
+<sys_name>Repeated Alerts</sys_name>
+<sys_package display_value="Event Management" source="com.glideapp.itom.snac">8702ba0adb072010de282d9a13961906</sys_package>
+<sys_policy/>
+<sys_scope display_value="Global">global</sys_scope>
+<sys_update_name>sys_relationship_d8dbca6a9326030054fc31f6357ffb60</sys_update_name>
+<sys_updated_by>matt.morris</sys_updated_by>
+<sys_updated_on>2021-06-17 20:42:01</sys_updated_on>
+</sys_relationship>
+</unload>
